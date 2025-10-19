@@ -1,36 +1,22 @@
-import streamlit as st
-from google.cloud import language_v1
-import os
+from flask import Flask, render_template, request
+from textblob import TextBlob
 
-st.set_page_config(page_title="GCP Sentiment Analysis App", page_icon="☁️")
+app = Flask(__name__)
 
-st.title("🌤 Google Cloud Sentiment Analysis App")
-st.write("This app uses the Google Cloud Natural Language API to analyze the sentiment of your text.")
+@app.route('/', methods=['GET', 'POST'])
+def index():
+    sentiment = ""
+    if request.method == 'POST':
+        text = request.form['text']
+        analysis = TextBlob(text)
+        polarity = analysis.sentiment.polarity
+        if polarity > 0:
+            sentiment = "Positive 😊"
+        elif polarity < 0:
+            sentiment = "Negative 😞"
+        else:
+            sentiment = "Neutral 😐"
+    return render_template('index.html', sentiment=sentiment)
 
-text = st.text_area("Enter some text to analyze:")
-
-if st.button("Analyze Sentiment"):
-    if not text.strip():
-        st.warning("Please enter text before analyzing.")
-    else:
-        try:
-            # Authenticate using your GCP credentials JSON
-            os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "your-key.json"
-            client = language_v1.LanguageServiceClient()
-
-            document = language_v1.Document(content=text, type_=language_v1.Document.Type.PLAIN_TEXT)
-            sentiment = client.analyze_sentiment(request={'document': document}).document_sentiment
-
-            st.success(f"Sentiment Score: {sentiment.score:.2f}")
-            st.info(f"Sentiment Magnitude: {sentiment.magnitude:.2f}")
-
-            if sentiment.score > 0.25:
-                st.write("🟢 **Overall Sentiment: Positive**")
-            elif sentiment.score < -0.25:
-                st.write("🔴 **Overall Sentiment: Negative**")
-            else:
-                st.write("🟡 **Overall Sentiment: Neutral**")
-
-        except Exception as e:
-            st.error("⚠️ Could not connect to Google Cloud API. (Did you add your key?)")
-            st.write(e)
+if __name__ == '__main__':
+    app.run(debug=True)
