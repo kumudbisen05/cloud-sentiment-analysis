@@ -1,2 +1,2 @@
-streamlit
-google-cloud-language
+Flask==2.3.3
+textblob==0.17.1
